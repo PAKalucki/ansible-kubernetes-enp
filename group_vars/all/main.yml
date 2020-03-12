@@ -1,0 +1,5 @@
+---
+kubernetes_repo_baseurl: "https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64"
+kubernetes_repo_gpgkey: "https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg"
+docker_repo_baseurl: "https://download.docker.com/linux/centos/7/x86_64/stable"
+docker_repo_gpgkey: "https://download.docker.com/linux/centos/gpg"

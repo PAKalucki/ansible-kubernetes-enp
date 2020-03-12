@@ -1,0 +1,106 @@
+---
+- hosts: master, worker
+  gather_facts: false
+  become: yes
+  tasks:
+    - name: "Add Kubernetes repository"
+      yum_repository:
+        name: kubernetes
+        enabled: yes
+        repo_gpgcheck: yes
+        gpgkey: "{{ kubernetes_repo_gpgkey }}"
+        state: present
+        gpgcheck: yes
+        description: "Kubernetes repository"
+        baseurl: "{{ kubernetes_repo_baseurl }}"
+        sslverify: no
+
+    - name: "Add Docker repository"
+      yum_repository:
+        name: docker
+        enabled: yes
+        repo_gpgcheck: yes
+        gpgkey: "{{ docker_repo_gpgkey }}"
+        state: present
+        gpgcheck: yes
+        description: "Docker repository"
+        baseurl: "{{ docker_repo_baseurl }}"
+        sslverify: no
+
+    - name: "Install packages with yum"
+      yum:
+        name: "{{ packages }} "
+        state: present
+
+    - name: "Set selinux to permissive mode"
+      selinux:
+        policy: targeted
+        state: permissive
+
+    - name: "Configure firewall"
+      firewalld:
+        state: enabled
+        immediate: yes
+        permanent: yes
+        port: "{{ item }}"
+      loop: "{{ ports }}"
+
+    - name: "Set net.bridge.bridge-nf-call for CentOS"
+      lineinfile:
+        path: /etc/sysctl.d/k8s.conf
+        create: yes
+        state: present
+        line: net.bridge.bridge-nf-call-iptables = 1
+
+    - name: "Disable SWAP"
+      command: swapoff -a
+
+    - name: "Disable SWAP permanently"
+      replace:
+        path: /etc/fstab
+        regexp: '^([^#].*?\sswap\s+sw\s+.*)$'
+        replace: '# \1'
+
+    - name: "Enable and start Docker"
+      systemd:
+        name: docker
+        enabled: yes
+        state: started
+
+    - name: "Enable and start kubelet"
+      systemd:
+        name: kubelet
+        enabled: yes
+        state: started
+
+    - name: "Setup master"
+      when: "inventory_hostname in groups['master']"
+      block:
+        - name: "Check if cluster is already running on host"
+          command: kubectl get cs
+          register: cluster_status
+          ignore_errors: true
+
+        - name: "Create cluster"
+          when: "'Healthy' not in cluster_status.stdout"
+          command: kubeadm init
+          register: kubeadm_output
+
+        - name: "Check if /etc/kubernetes/admin.conf exists"
+          stat:
+            path: /etc/kubernetes/admin.conf
+          register: conf_stat
+
+        - name: "Create ~/.kube"
+          file:
+            path: ~/.kube
+            state: directory
+
+        - name: "Copy admin.conf to user home"
+          when: conf_stat.stat.exists
+          copy:
+            dest: ~/.kube/config
+            src: /etc/kubernetes/admin.conf
+            owner: "{{ ansible_user }}"
+            force: yes
+            remote_src: yes

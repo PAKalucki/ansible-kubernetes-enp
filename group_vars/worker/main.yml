@@ -1,0 +1,14 @@
+---
+packages:
+  - yum-utils
+  - device-mapper-persistent-data
+  - lvm2
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io
+  - kubelet
+  - kubeadm
+
+ports:
+  - 10250/tcp
+  - 30000-32767/tcp

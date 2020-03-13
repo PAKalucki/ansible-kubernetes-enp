@@ -8,3 +8,5 @@ Dla uproszczenia pracuje na koncie roota.
 Testowane na:  
 - Ansible >= 2.9  
 - CentOS 7 VMs 2 CPU, 2 GB RAM, minimal install
+
+Skonfiguruj swoje inventory host.ini i uruchom mnie z ansible-playbook -i hosts.ini site.yml  
